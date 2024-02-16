@@ -1,7 +1,5 @@
-use std::path::Path;
-
 use clap::{Parser, Subcommand};
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::Result;
 use record_audio::audio_clip::AudioClip;
 
 #[derive(Debug, Subcommand)]
@@ -11,7 +9,7 @@ enum Commands {
     },
     #[clap(arg_required_else_help = true)]
     Play {
-        path: String        
+        path: String,
     },
 }
 
@@ -24,26 +22,25 @@ struct Cli {
 }
 
 fn main() -> Result<()> {
+    color_eyre::install().unwrap();
     let args = Cli::parse();
 
     match args.command {
-        Commands::Record { name } => {
-            let clip = AudioClip::record(name)?;
-            clip.export(format!("{}.wav", clip.name).as_str())?;
-            println!("Audio clip saved as {}.wav", clip.name);
-        }
-        Commands::Play { path } => {
-            Path::new(&path)
-                .file_stem()
-                .ok_or_else(|| eyre!("Invalid path: {}", path))?
-                .to_str()
-                .ok_or_else(|| eyre!("Path is not utf8"))?
-                .to_string();
+        Commands::Record { name } => handle_record(name),
+        Commands::Play { path } => handle_play(path),
+    }
+}
 
-            let clip = AudioClip::import(path)?;
-            clip.play()?;
-        }
-    };
+fn handle_record(name: Option<String>) -> Result<()> {
+    let clip = AudioClip::record(name)?;
+    let filename = format!("{}.wav", clip.name);
+    clip.export(&filename)?;
+    println!("Audio clip saved as {}.wav", clip.name);
+    Ok(())
+}
 
+fn handle_play(path: String) -> Result<()> {
+    let clip = AudioClip::import(path)?;
+    clip.play()?;
     Ok(())
 }
